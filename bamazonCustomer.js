@@ -9,3 +9,79 @@ However, if your store does have enough of the product, you should fulfill the c
 This means updating the SQL database to reflect the remaining quantity.
 Once the update goes through, show the customer the total cost of their purchase.
 **/
+const mysql = require("mysql"),
+    inquirer = require("inquirer");
+
+const connection = mysql.createConnection({
+    host: "localhost",
+    port: 3306,
+
+    user: "root",
+
+    password: "",
+    database: "bamazon"
+});
+
+connection.connect(function(err) {
+    if (err) throw err;
+    console.log("connected as id " + connection.threadId + "\n");
+    displayProducts();
+});
+
+function displayProducts() {
+    var query = "SELECT * FROM products";
+    connection.query(query, function(err, res) {
+        if (err) throw err;
+        for (i = 0; i < res.length; i++) {
+            console.log("Product ID: " + res[i].id + "\nName: " + res[i].product_name +
+                "\nPrice: " + res[i].price + "\n \n");
+        }
+        runQuery();
+    });
+}
+
+function runQuery() {
+    inquirer.prompt([{
+            type: "input",
+            name: "id",
+            message: "Please enter the ID of the product you wish to purchase",
+            validate: function(value) {
+                if (isNaN(value) === false) {
+                    return true;
+                }
+                return false;
+            }
+        },
+        {
+            type: "input",
+            name: "quantity",
+            message: "Please enter the quantity you wish to purchase",
+            validate: function(value) {
+                if (isNaN(value) === false) {
+                    return true;
+                }
+                return false;
+            }
+        }
+
+    ]).then(function(answers) {
+        var query = "SELECT * FROM products WHERE ?";
+        connection.query(query, { id: answers.id }, function(err, res) {
+            if (err) throw err;
+            var newQuant = res[0].stock_quantity - answers.quantity,
+            orderPrice = res[0].price * answers.quantity;
+            if (res[0].stock_quantity < answers.quantity) {
+                console.log("Insufficient Quantity!");
+                            connection.end();
+            } else {
+                connection.query('UPDATE products SET stock_quantity = :Quantity WHERE id = :id',
+                     {id: answers.id, Quantity: newQuant},
+                    function(err, res) {
+                        console.log("Order successful! Total cost: $" + orderPrice);
+                        connection.end();
+                                            });
+            }
+        });
+    })
+
+}
