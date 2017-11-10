@@ -69,17 +69,16 @@ function runQuery() {
         connection.query(query, { id: answers.id }, function(err, res) {
             if (err) throw err;
             var newQuant = res[0].stock_quantity - answers.quantity,
-            orderPrice = res[0].price * answers.quantity;
+                orderPrice = res[0].price * answers.quantity;
             if (res[0].stock_quantity < answers.quantity) {
                 console.log("Insufficient Quantity!");
-                            connection.end();
+                connection.end();
             } else {
-                connection.query('UPDATE products SET stock_quantity = :Quantity WHERE id = :id',
-                     {id: answers.id, Quantity: newQuant},
+                connection.query('UPDATE products SET stock_quantity = :Quantity WHERE id = :id', { id: answers.id, Quantity: newQuant },
                     function(err, res) {
                         console.log("Order successful! Total cost: $" + orderPrice);
                         connection.end();
-                                            });
+                    });
             }
         });
     })
