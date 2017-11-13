@@ -68,16 +68,29 @@ function runQuery() {
         var query = "SELECT * FROM products WHERE ?";
         connection.query(query, { id: answers.id }, function(err, res) {
             if (err) throw err;
+            var id = res[0].id;
             var newQuant = res[0].stock_quantity - answers.quantity,
                 orderPrice = res[0].price * answers.quantity;
+            var totalSales = res[0].product_sales + orderPrice;
             if (res[0].stock_quantity < answers.quantity) {
                 console.log("Insufficient Quantity!");
                 connection.end();
             } else {
-                connection.query('UPDATE products SET stock_quantity = :Quantity WHERE id = :id', { id: answers.id, Quantity: newQuant },
+                connection.query('UPDATE products SET ? WHERE id = ?', [{ stock_quantity: newQuant, product_sales: totalSales }, id],
                     function(err, res) {
                         console.log("Order successful! Total cost: $" + orderPrice);
-                        connection.end();
+                        inquirer.prompt([{
+                            name: "confirm",
+                            type: "confirm",
+                            message: "Make another purchase?"
+                        }]).then(function(answers) {
+                            if (answers.confirm === true) {
+                                displayProducts();
+                            } else {
+                                connection.end();
+                            }
+                        })
+
                     });
             }
         });
